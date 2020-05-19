@@ -10,15 +10,21 @@ using System.Windows.Forms;
 using System.Data.SqlClient;
 using System.Threading;
 using System.Data.Sql;
+using System.Xml.Schema;
+using System.Diagnostics;
 
 namespace ProblemRegistration
 {
+
     public partial class Form1 : Form
     {
-        SqlConnection conn = new SqlConnection(@"Data Source=GOLD-PEN\SQLEXPRESSMES;Initial Catalog = MES_Project; Integrated Security = True; Timeout = 5");
+        SqlConnection conn = new SqlConnection(@"Data Source=GOLD-PEN\SQLEXPRESSMES;Initial Catalog = MES_Project; Integrated Security = True; Timeout = 60");
         SqlDataAdapter adpt;
         DataTable tb;
-        public Form1()
+        private string templbEqTeam = "";
+        private string tempDept = "";
+        private int templbPlans = 0;
+        public Form1(string[] args)
         {
             UseWaitCursor = true;
             InitializeComponent();
@@ -36,27 +42,120 @@ namespace ProblemRegistration
                 MessageBox.Show("Can't connect to Databases", "Connection problem");
                 Environment.Exit(0);
             }
+
+            if (args.Length > 0)
+            {
+                try
+                {
+                    switch (args[0])
+                    {
+                        case "SC1":
+                            templbEqTeam = "Сырцех1";
+                            tempDept = "Сирцех";
+                            break;
+                        case "SC2":
+                            templbEqTeam = "Сырцех2";
+                            tempDept = "Сирцех";
+                            break;
+                        case "posol1":
+                            templbEqTeam = "Солилка1";
+                            tempDept = "Все";
+                            break;
+                        case "posol2":
+                            templbEqTeam = "Солилка2";
+                            tempDept = "Все";
+                            break;
+                        case "pats":
+                            templbEqTeam = "ПАЦ";
+                            tempDept = "ПАЦ";
+                            break;
+                        case "tsechSozrevania":
+                            templbEqTeam = "Цех Созревания";
+                            tempDept = "Цех дозрівання";
+                            break;
+                        case "tsechFasovki":
+                            templbEqTeam = "Цех Фасовки";
+                            tempDept = "Цех фасування";
+                            break;
+                        case "masloTsech":
+                            templbEqTeam = "Маслоцех";
+                            tempDept = "Маслоцех";
+                            break;
+                        case "tsechSZTS":
+                            templbEqTeam = "Цех СЗС";
+                            tempDept = "Цех СЗС";
+                            break;
+                        default:
+                            break;
+                    }
+                    /*lbDept.Items.Clear();
+                    lbDept.Items.Add(tempDept);
+                    */
+                    templbPlans = Convert.ToInt32((args[1]));
+                }
+                finally
+                {
+
+                }
+            }
+            if (templbPlans != 0 && templbEqTeam != "")
+            {
+                lbEqTeam.Items.Clear();
+                lbEqTeam.Items.Add(templbEqTeam);
+                lbEqTeam.SetSelected(0, true);
+                lbEqTeam.Enabled = false;
+
+                lbPlans.Items.Clear();
+                lbPlans.Items.Add(templbPlans);
+                lbPlans.SetSelected(0, true);
+                lbPlans.Enabled = false;
+
+                lbDept.Items.Clear();
+                lbDept.Items.Add(tempDept);
+                lbDept.SetSelected(0, true);
+
+                lbDept.Enabled = false;
+                lbDept.Visible = true;
+                lDept.Visible = true;
+
+            }
+            else
+            {
+                lbEmployee.Visible = false;
+                lEmployee.Visible = false;
+
+                lbDept.Visible = false;
+                lDept.Visible = false;
+            }
+
             UseWaitCursor = false;
+            
             lbPlans.Visible = false;
+            lPlan.Visible = false;
+
             lPart.Visible = false;
+
             //lbEqTeam.Visible = false;
-            // lbDept.Visible = false;
-            lbEmployee.Visible = false;
+            //lbDept.Visible = false;
+
             lbEqList.Visible = false;
             lbEqPart.Visible = false;
             lbEqPoint.Visible = false;
             lbSensor.Visible = false;
             txtDescription.Visible = false;
-            lTeam.Visible = false;
+            //lTeam.Visible = false;
             //lDept.Visible = false;
-            lEmployee.Visible = false;
+
             lList.Visible = false;
+           
             lPart.Visible = false;
             lPoint.Visible = false;
             lSensor.Visible = false;
             lDescription.Visible = false;
             lCreated.Visible = false;
             lbCreated.Visible = false;
+
+
         }
 
         private void dateTimePicker1_ValueChanged(object sender, EventArgs e)
@@ -72,11 +171,16 @@ namespace ProblemRegistration
         void DataPickerUpdt()
         {
             datepicker.Format = DateTimePickerFormat.Custom;
-            datepicker.CustomFormat = "MM/dd/yyyy hh:mm:ss";
+            datepicker.CustomFormat = "dd/MM/yyyy hh:mm:ss";
+            datepicker.MinDate = new DateTime(2020, 01, 01);
+            datepicker.MaxDate = DateTime.Today;
+            //datepicker.ShowUpDown = true;z
         }
-        void showPlans()
+        void showPlans(string scNum = "SC2")
         {
-            adpt = new SqlDataAdapter("SELECT top (9) [Plan] FROM WorkStatusSCH WHERE Status = 'Start' ORDER BY DataUpdate DESC", conn);
+            lbPlans.Items.Clear();
+            adpt = new SqlDataAdapter("SELECT top (9) [Plan] FROM WorkStatusSCH WHERE Status = 'Start' AND Station = '" + scNum + "' " +
+                "ORDER BY DataUpdate DESC", conn);
             tb = new DataTable();
             adpt.Fill(tb);
             foreach (DataRow ro in tb.Rows)
@@ -148,6 +252,16 @@ namespace ProblemRegistration
             k = tb.Rows[0]["ID"].ToString();
             return id = Convert.ToInt32(k);
         }
+        private int SortSQLList(string command)
+        {
+            adpt = new SqlDataAdapter(command, conn);
+            tb = new DataTable();
+            adpt.Fill(tb);
+            string k = "";
+            int id;
+            k = tb.Rows[0]["ID"].ToString();
+            return id = Convert.ToInt32(k);
+        }
         private int SortListList(string Equip)
         {
             adpt = new SqlDataAdapter("SELECT * FROM EquipmentList WHERE Equipment = '" + Equip + "'", conn);
@@ -170,72 +284,140 @@ namespace ProblemRegistration
         }
         private void lbDept_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string employee = lbDept.SelectedItem.ToString();
-            lbEmployee.Visible = true;
-            lEmployee.Visible = true;
-            if (employee == "Все")
+            if (lbDept.SelectedItem != null)
             {
-                showEployee();
+
+
+                lbCreated.Visible = false;
+                lbCreated.Items.Clear();
+                lCreated.Visible = false;
+
+                string employee = lbDept.SelectedItem.ToString();
+
+                //lTeam.Text = employee;
+
+                lbEmployee.Visible = true;
+                lEmployee.Visible = true;
+                if (employee == "Все")
+                {
+                    showEployee();
+                }
+                else
+                {
+                    int ID = WhatIsIDDept(employee);
+                    showEployee(ID);
+                    //lTeam.Text = "Zahodit SUka";
+                }
             }
-            else
+
+        }
+        private void PlanChoise(string k)
+        {
+            switch (k)
             {
-                int ID = WhatIsIDDept(employee);
-                showEployee(ID);
+                case "Маслоцех":
+                    AddToPlansList(100, 799);
+                    break;
+                case "Цех СЗС":
+                    AddToPlansList(5000, 6999);
+                    break;
+                case "Цех Фасовки":
+                    AddToPlansList(7000, 7999);
+                    break;
+                case "Цех Созревания":
+                    AddToPlansList(8000, 9999);
+                    break;
+                case "Сырцех1":
+                case "Солилка1":
+                    showPlans("SC1");
+                    break;
+                case "Сырцех2":
+                case "Солилка2":
+                    showPlans("SC2");
+                    break;
+                default:
+                    //showPlans();
+                    break;
             }
+
         }
         private void lbEqTeam_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (lbEqTeam.SelectedItem != null)
+            {
+                lbEqPart.Visible = false;
+                lPart.Visible = false;
+                lbEqPoint.Visible = false;
+                lPoint.Visible = false;
+                lbSensor.Visible = false;
+                lSensor.Visible = false;
 
-            lbPlans.Visible = true;
-            lPlan.Visible = true;
-            lbDept.Visible = true;
-            lDept.Visible = true;
-            lbSensor.Visible = false;
-            lbEqPart.Visible = false;
-            lSensor.Visible = false;
-            lPart.Visible = false;
-            lbEqPart.Items.Clear();
-            lbEqPoint.Visible = false;
-            lPoint.Visible = false;
-            lbEqPoint.Items.Clear();
-            lbEqList.Visible = true;
-            lList.Visible = true;
-            txtDescription.Visible = true;
-            lDescription.Visible = true;
-            string eq = lbEqTeam.SelectedItem.ToString();
-            int ID = SortTeamList(eq);
-            showEquip(ID);
+                lbPlans.Visible = false;
+                lPlan.Visible = false;
+                
+                lbEqList.Visible = false;
+                lList.Visible = false;
+                
+                lbDept.Visible = true;
+                lDept.Visible = true;
+                lbEmployee.Visible = false;
+                lbEmployee.Items.Clear();
+                lEmployee.Visible = false;
+                lbCreated.Visible = false;
+                lbCreated.Items.Clear();
+                showEquip(SortSQLList("SELECT * FROM EquipmentTeam WHERE Name = '" + lbEqTeam.SelectedItem.ToString() + "'"));
+                PlanChoise(lbEqTeam.SelectedItem.ToString());
+            }
+
+        }
+        private void AddToPlansList(int begin, int end)
+        {
+            lbPlans.Items.Clear();
+            for (int i = begin; i <= end; i++)
+            {
+                lbPlans.Items.Add(i.ToString());
+            }
+
         }
         private void lbEqList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            lbSensor.Visible = false;
-            lbEqPoint.Visible = false;
-            lSensor.Visible = false;
-            lPoint.Visible = false;
-            lbEqPoint.Items.Clear();
-            lbEqPart.Visible = true;
-            lPart.Visible = true;
-            string eq = lbEqList.SelectedItem.ToString();
-            int ID = SortListList(eq);
-            showParts(ID);
-        }
-        private void lbEqPart_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (lbEqPart.SelectedItem.ToString() == "інше")
+            if (lbEqList.SelectedItem != null)
             {
                 lbSensor.Visible = false;
                 lbEqPoint.Visible = false;
                 lSensor.Visible = false;
                 lPoint.Visible = false;
-                return;
+                lbEqPoint.Items.Clear();
+                lbEqPart.Visible = true;
+                lPart.Visible = true;
+                string eq = lbEqList.SelectedItem.ToString();
+                int ID = SortListList(eq);
+                showParts(ID);
             }
-            lbSensor.Visible = false;
-            lbEqPoint.Visible = true;
-            lSensor.Visible = false;
-            lPoint.Visible = true;
-            string eq = lbEqPart.SelectedItem.ToString();
-            int ID = SortListPart(eq);
-            showPoints(ID);
+        }
+        private void lbEqPart_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (lbEqPart.SelectedItem != null)
+            {
+                txtDescription.Visible = true;
+                lDescription.Visible = true;
+
+                if (lbEqPart.SelectedItem.ToString() == "інше")
+                {
+                    lbSensor.Visible = false;
+                    lbEqPoint.Visible = false;
+                    lSensor.Visible = false;
+                    lPoint.Visible = false;
+                    return;
+                }
+                lbSensor.Visible = false;
+                lbEqPoint.Visible = true;
+                lSensor.Visible = false;
+                lPoint.Visible = true;
+                string eq = lbEqPart.SelectedItem.ToString();
+                int ID = SortListPart(eq);
+                showPoints(ID);
+            }
         }
         void showEquip(int ID)
         {
@@ -291,36 +473,48 @@ namespace ProblemRegistration
             tb = new DataTable();
             adpt.Fill(tb);
             lbCreated.Items.Clear();
-            int i=0;
+            int i = 0;
             string item;
             foreach (DataRow ro in tb.Rows)
             {
                 i++;
-                item = i.ToString() + ". " + ro["Descript"].ToString(); 
+                item = ro["NrPlan"].ToString() + ". " + ro["Descript"].ToString();
+                //item = i.ToString() + ". " + ro["Descript"].ToString(); 
                 lbCreated.Items.Add(item);
             }
         }
 
         private void lbEqPoint_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (lbEqPoint.SelectedItem.ToString() == "інше" || lbEqPoint.SelectedItem.ToString() == "Інше")
+            if (lbEqPoint.SelectedItem != null)
             {
-                lbSensor.Visible = false;
-                lSensor.Visible = false;
+                if (lbEqPoint.SelectedItem.ToString() == "інше" || lbEqPoint.SelectedItem.ToString() == "Інше")
+                {
+                    lbSensor.Visible = false;
+                    lSensor.Visible = false;
+                }
+                else
+                {
+                    lbSensor.Visible = true;
+                    lSensor.Visible = true;
+                    showSensors();
+                }
             }
-            else
-            {
-                lbSensor.Visible = true;
-                lSensor.Visible = true;
-                showSensors();
-            }
-            
         }
 
         private void lbPlans_SelectedIndexChanged(object sender, EventArgs e)
         {
-            lbEqTeam.Visible = true;
-            lTeam.Visible = true;
+
+            lbEqList.Visible = true;
+            lList.Visible = true;
+
+            lbEqPart.Visible = false;
+            lPart.Visible = false;
+            lbEqPoint.Visible = false;
+            lPoint.Visible = false;
+            lbSensor.Visible = false;
+            lSensor.Visible = false;
+
         }
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -349,9 +543,9 @@ namespace ProblemRegistration
 
         private void btnOK_Click(object sender, EventArgs e)
         {
-            if (txtDescription.Text.ToString() == "")
+            if (lbEqTeam.SelectedItems.Count < 1)
             {
-                MessageBox.Show("Опишите проблему");
+                MessageBox.Show("Выберете Участок");
                 return;
             }
             if (lbPlans.SelectedItems.Count < 1)
@@ -367,6 +561,11 @@ namespace ProblemRegistration
             if (lbEmployee.SelectedItems.Count < 1)
             {
                 MessageBox.Show("Выберете Сотрудника");
+                return;
+            }
+            if (txtDescription.Text.ToString() == "")
+            {
+                MessageBox.Show("Опишите проблему");
                 return;
             }
             if (lbEqPoint.Visible == true && lbEqPoint.SelectedItems.Count < 1)
@@ -413,7 +612,7 @@ namespace ProblemRegistration
                             lbEqList.SelectedItem.ToString() + "', '" +
                             txtDescription.Text + "', '" +
                             "Не принято в работу', " +
-                            "getdate(), '', '', '', '', '', '', '" +
+                            "getdate(), '', '', '', Null, Null, Null, '" +
                             lbEqPart.SelectedItem.ToString() + "', '" +
                             category3 + "', '" +
                             sensor + "')";
@@ -454,14 +653,56 @@ namespace ProblemRegistration
 
         private void lbEmployee_SelectedIndexChanged(object sender, EventArgs e)
         {
-            lCreated.Visible = true;
-            lbCreated.Visible = true;
-            lbEqTeam.Visible = true;
-            lTeam.Visible = true;
-            showCreated(lbEmployee.SelectedItem.ToString());
+            if (lbEmployee.SelectedItem != null)
+            {
+                lbPlans.Visible = true;
+                lPlan.Visible = true;
+                if (lbPlans.SelectedItem != null)
+                {
+                    lPart.Visible = false;
+                    lbEqPart.Visible = false;
+                    
+
+                    lPoint.Visible = false;
+                    lbEqPoint.Visible = false;
+
+                    lPoint.Visible = false;
+                    lbSensor.Visible = false;
+
+                    lbEqPart.Items.Clear();
+                    lbEqPoint.Items.Clear();
+                    lbSensor.Items.Clear();
+
+                    if (lList.Visible == false)
+                    {
+                        lList.Visible = true;
+                        lbEqList.Visible = true;
+                    }
+                    else
+                    {
+                        showEquip(SortSQLList("SELECT * FROM EquipmentTeam WHERE Name = '" + lbEqTeam.SelectedItem.ToString() + "'"));
+                    }
+                    
+                }
+
+                lCreated.Visible = true;
+                lbCreated.Visible = true;
+                showCreated(lbEmployee.SelectedItem.ToString());
+
+            }
         }
 
-        private void label1_Click(object sender, EventArgs e)
+        private void txtDescription_TextChanged(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lList_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void lPoint_Click(object sender, EventArgs e)
         {
 
         }
